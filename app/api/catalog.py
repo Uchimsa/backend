@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
+from supabase import Client
 
 from app.core.deps import get_supabase_dep
 from app.models.catalog import QuestionOut, QuestionType, SubjectOut, WeekOut
 from app.services import catalog as catalog_service
-from supabase import Client
 
 router = APIRouter(tags=["catalog"])
 
