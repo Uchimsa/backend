@@ -247,15 +247,8 @@ class UserAdmin(ModelView, model=User):
         ),
     }
 
-    form_excluded_columns = [User.hashed_password]
+    form_excluded_columns = [User.hashed_password, User.is_admin]
     can_create = False
-
-    form_args = {
-        "is_admin": {
-            "label": "Права администратора",
-            "description": "Администратор может входить в эту панель и управлять контентом",
-        },
-    }
 
 
 class StudyPlanAdmin(ModelView, model=StudyPlan):
