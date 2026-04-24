@@ -22,6 +22,9 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
+    def __str__(self) -> str:
+        return self.email
+
     user_subjects: Mapped[list["UserSubject"]] = relationship(
         "UserSubject", back_populates="user", cascade="all, delete-orphan"
     )

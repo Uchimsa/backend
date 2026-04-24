@@ -23,6 +23,9 @@ class Subject(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
+    def __str__(self) -> str:
+        return self.name
+
     weeks: Mapped[list["Week"]] = relationship(
         "Week", back_populates="subject", cascade="all, delete-orphan"
     )

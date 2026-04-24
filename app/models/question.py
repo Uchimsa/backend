@@ -39,4 +39,8 @@ class Question(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
+    def __str__(self) -> str:
+        preview = self.question_text[:60] + "…" if len(self.question_text) > 60 else self.question_text
+        return f"[{self.type.value}] {preview}"
+
     week: Mapped["Week"] = relationship("Week", back_populates="questions")
