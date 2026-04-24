@@ -1,29 +1,35 @@
+import uuid
+
 from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import UserContext, get_current_user
-from app.core.deps import get_supabase_dep
-from app.models.user import UserSubjectsUpdate
-from app.services import users as user_service
-from supabase import Client
+from app.core.deps import get_db
+from app.schemas.user import UserOut, UserSubjectsUpdate
+from app.services.user import user_service
 
-router = APIRouter(tags=["users"])
+router = APIRouter(prefix="/me", tags=["users"])
 
 
-@router.post("/users/me/subjects")
-async def add_subjects(
+@router.get("", response_model=UserOut)
+async def get_me(
+    user: UserContext = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+):
+    return await user_service.get_or_404(db, uuid.UUID(user.user_id))
+
+
+@router.get("/subjects")
+async def get_my_subjects(
+    user: UserContext = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+):
+    subject_ids = await user_service.get_subjects(db, uuid.UUID(user.user_id))
+    return {"subject_ids": subject_ids}
+
+
+@router.put("/subjects", status_code=204)
+async def set_my_subjects(
     payload: UserSubjectsUpdate,
     user: UserContext = Depends(get_current_user),
-    client: Client = Depends(get_supabase_dep),
-) -> dict:
-    data = await user_service.attach_subjects(client, user.user_id, payload.subject_ids)
-    return {"items": data}
-
-
-@router.delete("/users/me/subjects/{subject_id}")
-async def remove_subject(
-    subject_id: str,
-    user: UserContext = Depends(get_current_user),
-    client: Client = Depends(get_supabase_dep),
-) -> dict:
-    await user_service.detach_subject(client, user.user_id, subject_id)
-    return {"status": "ok"}
+    db: AsyncSession = Depends(get_db),
+):
+    await user_service.set_subjects(db, uuid.UUID(user.user_id), payload.subject_ids)

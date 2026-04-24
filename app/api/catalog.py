@@ -1,30 +1,32 @@
-from fastapi import APIRouter, Depends
-from supabase import Client
+import uuid
+from typing import Optional
 
-from app.core.deps import get_supabase_dep
-from app.models.catalog import QuestionOut, QuestionType, SubjectOut, WeekOut
-from app.services import catalog as catalog_service
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.auth import UserContext, get_current_user
+from app.core.deps import get_db
+from app.models.question import QuestionType
+from app.schemas.catalog import QuestionOut, SubjectOut, WeekOut
+from app.services.catalog import question_service, subject_service, week_service
 
 router = APIRouter(tags=["catalog"])
 
 
 @router.get("/subjects", response_model=list[SubjectOut])
-async def get_subjects(client: Client = Depends(get_supabase_dep)) -> list[dict]:
-    return await catalog_service.list_subjects(client)
+async def get_subjects(db: AsyncSession = Depends(get_db)):
+    return await subject_service.list_visible(db)
 
 
 @router.get("/subjects/{subject_id}/weeks", response_model=list[WeekOut])
-async def get_weeks(
-    subject_id: str,
-    client: Client = Depends(get_supabase_dep),
-) -> list[dict]:
-    return await catalog_service.list_weeks(client, subject_id)
+async def get_weeks(subject_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    return await week_service.list_by_subject(db, subject_id)
 
 
 @router.get("/weeks/{week_id}/questions", response_model=list[QuestionOut])
 async def get_questions(
-    week_id: str,
-    types: list[QuestionType] | None = None,
-    client: Client = Depends(get_supabase_dep),
-) -> list[dict]:
-    return await catalog_service.list_questions(client, week_id, types)
+    week_id: uuid.UUID,
+    types: Optional[list[QuestionType]] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    return await question_service.list_by_week(db, week_id, types)

@@ -1,19 +1,19 @@
-from enum import Enum
+import uuid
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
 
-
-class QuestionType(str, Enum):
-    flashcard = "flashcard"
-    test = "test"
-    task = "task"
+from app.models.question import QuestionType
 
 
 class SubjectOut(BaseModel):
-    id: str
+    id: uuid.UUID
     name: str
     icon_name: Optional[str] = None
+    is_hidden: bool
+
+    model_config = {"from_attributes": True}
 
 
 class SubjectCreate(BaseModel):
@@ -24,17 +24,20 @@ class SubjectCreate(BaseModel):
 class SubjectUpdate(BaseModel):
     name: Optional[str] = None
     icon_name: Optional[str] = None
+    is_hidden: Optional[bool] = None
 
 
 class WeekOut(BaseModel):
-    id: str
-    subject_id: str
+    id: uuid.UUID
+    subject_id: uuid.UUID
     week_number: int
     title: str
 
+    model_config = {"from_attributes": True}
+
 
 class WeekCreate(BaseModel):
-    subject_id: str
+    subject_id: uuid.UUID
     week_number: int
     title: str
 
@@ -45,8 +48,8 @@ class WeekUpdate(BaseModel):
 
 
 class QuestionOut(BaseModel):
-    id: str
-    week_id: str
+    id: uuid.UUID
+    week_id: uuid.UUID
     type: QuestionType
     question_text: str
     answer_text: Optional[str] = None
@@ -54,9 +57,11 @@ class QuestionOut(BaseModel):
     correct_option_index: Optional[int] = None
     explanation: Optional[str] = None
 
+    model_config = {"from_attributes": True}
+
 
 class QuestionCreate(BaseModel):
-    week_id: str
+    week_id: uuid.UUID
     type: QuestionType
     question_text: str
     answer_text: Optional[str] = None
@@ -72,4 +77,4 @@ class QuestionUpdate(BaseModel):
     correct_option_index: Optional[int] = Field(default=None, ge=0)
     explanation: Optional[str] = None
     type: Optional[QuestionType] = None
-    week_id: Optional[str] = None
+    week_id: Optional[uuid.UUID] = None

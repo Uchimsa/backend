@@ -1,4 +1,5 @@
-from typing import Any, Optional, cast
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -7,25 +8,25 @@ from pydantic import BaseModel
 
 from app.core.settings import Settings, get_settings
 
+security = HTTPBearer()
+
 
 class UserContext(BaseModel):
     user_id: str
-    role: Optional[str] = None
-    email: Optional[str] = None
+    email: str | None = None
+    is_admin: bool = False
 
 
-security = HTTPBearer()
+def create_access_token(data: dict[str, Any], settings: Settings) -> str:
+    payload = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
+    payload["exp"] = expire
+    return jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
 
 
 def _decode_token(token: str, settings: Settings) -> dict[str, Any]:
     try:
-        payload = jwt.decode(
-            token,
-            settings.supabase_jwt_secret,
-            algorithms=[settings.supabase_jwt_alg],
-            options={"verify_aud": False},
-        )
-        return cast(dict[str, Any], payload)
+        return jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -40,21 +41,15 @@ def get_current_user(
     payload = _decode_token(credentials.credentials, settings)
     user_id = payload.get("sub")
     if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token missing subject",
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token missing subject")
     return UserContext(
         user_id=user_id,
-        role=payload.get("role"),
         email=payload.get("email"),
+        is_admin=payload.get("is_admin", False),
     )
 
 
 def require_admin(user: UserContext = Depends(get_current_user)) -> UserContext:
-    if user.role not in {"admin", "service_role"}:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required",
-        )
+    if not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     return user
