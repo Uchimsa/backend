@@ -1,10 +1,9 @@
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query  # <-- Добавлен импорт Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import UserContext, get_current_user
 from app.core.deps import get_db
 from app.models.question import QuestionType
 from app.schemas.catalog import QuestionOut, SubjectOut, WeekOut
@@ -26,7 +25,7 @@ async def get_weeks(subject_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 @router.get("/weeks/{week_id}/questions", response_model=list[QuestionOut])
 async def get_questions(
     week_id: uuid.UUID,
-    types: Optional[list[QuestionType]] = None,
+    types: Optional[list[QuestionType]] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     return await question_service.list_by_week(db, week_id, types)
